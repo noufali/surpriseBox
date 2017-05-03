@@ -1,0 +1,440 @@
+	<!DOCTYPE html>
+		<html lang="en">
+		<title>Phone Motion Streamer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+	<style>
+		body {
+			font-family: "Helvetica Neue", Helvetica;
+			margin: 0px;
+		}
+
+		.main{
+			background: #BADA55;
+			color: #E50000;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+		.right{
+			background: #091F38;
+			color: #ffffff;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+		.back{
+			background: #F68CFF;
+			color: #ffffff;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+
+		.left{
+			background: #660033;
+			color: #ffffff;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+		.top{
+			background: #210039;
+			color: #ffffff;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+
+		.bottom{
+			background: #F95759;
+			color: #ffffff;
+			font-family: Arial, Helvetica, Sans-serif;
+			font-size: 2em;
+			width: 400px;
+			height: 200px;
+			padding: 2em;
+		}
+
+	</style>
+
+  <body>
+
+	<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+	<script id="id" src="js/three.js"></script>
+	<script src="js/OrbitControls.js"></script>
+	<script src="js/CSS3DRenderer.js"></script>
+
+<script>
+	//browser activates this file first and initializes socket
+	var google = document.getElementById('wrapper');
+	var socket = io();
+	var directionY,directionX,directionZ;
+	var planeMesh;
+	var boxMesh;
+	var cssObjMain, cssObjRight, cssObjBack, cssObjleft;
+	var mainDiv, rightDiv, backDiv, leftDiv, topDiv, bottomDiv;
+	var group;
+	var scene, cssScene, cssRenderer;
+	//console.log(innerWidth,innerHeight);
+	
+	var x = 1;
+
+	function makeid() {
+	  var text = "";
+	  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	 
+	  for( var i=0; i < 5; i++ ) {
+	    text += possible.charAt(Math.floor(Math.random() * possible.length));
+	  }
+	  return text;
+	}
+
+	var name = makeid();
+
+	  var streaming = false;
+
+      var startStreaming = function () {
+        streaming = true;
+        return false;
+      };
+
+      window.addEventListener("load",startStreaming);
+
+
+      if (window.DeviceMotionEvent !== undefined) {
+        window.ondevicemotion = function(e) {
+          if (!streaming) return false;
+          socket.emit('motion', {
+            'sender':name,
+            'acceleration':e.accelerationIncludingGravity,
+            'interval':e.interval,
+            'rotationRate':e.rotationRate
+          });
+        };
+
+        //socket is only looping within itself to send to server. It opens real time connection. I need to loop getting the angle
+
+        window.ondeviceorientation = function(e) {
+          if (!streaming) return false;
+          socket.emit('orientation', { 
+          	'sender':name,
+            'alpha': e.alpha,
+            'beta': e.beta,
+            'gamma': e.gamma
+          });
+        };
+      } else {
+      }
+
+      socket.on('angles', function(data){
+      	//console.log('z:' + data.z); 
+      	// $('#angle').text(data.x);
+      	directionY = data.y;
+      	directionX = data.x;
+      	directionZ = data.z;
+
+      });
+
+
+	function init() {
+		container = document.createElement( 'div' );
+		document.body.appendChild( container );
+		camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, -1000, 2000 );
+		camera.position.z = 900; 
+		//camera.position.y = 20;
+
+		// scene
+		scene = new THREE.Scene();
+		cssScene = new THREE.Scene();
+
+		var ambient = new THREE.AmbientLight( 0x101030 );
+		scene.add( ambient );
+		light1 = new THREE.DirectionalLight( 0xffeedd );
+		light1.position.set( 0, 10, 10 );
+		scene.add( light1 );
+
+		// var geometry = new THREE.BoxBufferGeometry( 30, 15, 30 );
+
+		//var texture = new THREE.TextureLoader().load( 'google.png' );
+		// var texture2 = new THREE.Texture( google );
+
+		var material1 = new THREE.MeshBasicMaterial( { color:0xBADA55 } );
+
+		// var material2 = new THREE.MeshPhongMaterial( {
+		// 		color:0xBADA55,
+		// 		shininess: 100,
+		// 		specular: 0xAAAAAA,
+		// 		shading: THREE.SmoothShading
+		// 		} );
+
+		// planeMesh = new THREE.Mesh( geometry,material );
+
+		// scene.add(planeMesh);
+
+		// var textureLoader = new THREE.TextureLoader();
+
+		// var texture0 = textureLoader.load( 'google.png' );
+		// var texture1 = textureLoader.load( 'cat.jpg' );
+		// var texture2 = textureLoader.load( 'cat3.jpg' );
+		// var texture3 = textureLoader.load( 'bunny4.jpg' );
+		// var texture4 = textureLoader.load( 'camel5.jpg' );
+		// var texture5 = textureLoader.load( 'baby.jpg' );
+
+		// var materials = [
+		//     new THREE.MeshBasicMaterial( { map: texture0 } ),
+		//     new THREE.MeshBasicMaterial( { map: texture1 } ),
+		//     new THREE.MeshBasicMaterial( { map: texture2 } ),
+		//     new THREE.MeshBasicMaterial( { map: texture3 } ),
+		//     new THREE.MeshBasicMaterial( { map: texture4 } ),
+		//     new THREE.MeshBasicMaterial( { map: texture5 } )
+		// ];
+		// var faceMaterial = new THREE.MeshFaceMaterial( materials );
+
+		var boxGeometry = new THREE.BoxGeometry( 525, 320, 525 );
+		boxMesh = new THREE.Mesh( boxGeometry, material1 );
+
+		//1st Plane
+		var material = new THREE.MeshBasicMaterial({ wireframe: true });
+		var geometry = new THREE.PlaneGeometry(30,30,30);
+		var planeMesh = new THREE.Mesh( geometry, material );
+		
+	    //2nd Plane
+		var geometry2 = new THREE.PlaneGeometry(30,30,30);
+		var planeMesh2 = new THREE.Mesh( geometry2, material );
+		planeMesh2.rotateY( 90/180*Math.PI );
+		planeMesh2.position.x = 15;
+		planeMesh2.position.z = -15;
+		// add it to the WebGL scene
+		scene.add(planeMesh);
+		scene.add(planeMesh2);
+
+		//      HTML DOM ELEMENTS      //   
+
+		mainDiv = document.createElement('div');
+		mainDiv.className = 'main';
+
+		rightDiv = document.createElement('div');
+		rightDiv.className = 'right';
+
+		backDiv = document.createElement('div');
+		backDiv.className = 'back';
+
+	    leftDiv = document.createElement('div');
+		leftDiv.className = 'left';
+
+	    topDiv = document.createElement('div');
+		topDiv.className = 'top';
+
+	    bottomDiv = document.createElement('div');
+		bottomDiv.className = 'bottom';
+
+		//      Search Front Page      //
+
+		var secondDiv = document.createElement('div');
+		var thirdDiv = document.createElement('div');
+		var formServ = document.createElement('FORM');
+		thirdDiv.style.marginLeft = "80px";
+		formServ.setAttribute("action", "/search");
+		formServ.setAttribute("method", "POST");
+		formServ.setAttribute("id", "idform");
+		formServ.style.marginLeft = "30px";
+		formServ.appendChild(thirdDiv);
+		mainDiv.appendChild(secondDiv);
+		mainDiv.appendChild(formServ);
+
+		var search = document.createElement("INPUT");
+		search.setAttribute("type", "text");
+		search.setAttribute("value", "Search Something");
+		search.setAttribute("name", "textfield");
+		search.setAttribute("id", "searchResult");
+
+		var button = document.createElement("INPUT");
+		button.setAttribute("type", "submit");
+		button.setAttribute("value", "search");
+		button.setAttribute("id", "button");
+		button.style.marginLeft = "10px";
+
+		var pic = document.createElement('img');
+		pic.src = 'logo2.png';
+
+
+		secondDiv.appendChild(pic);
+		secondDiv.style.marginTop = '30px';
+		thirdDiv.appendChild(search);
+		thirdDiv.appendChild(button);
+		console.log(mainDiv);
+
+		//   CSS DIVS   //
+
+		cssObjMain = new THREE.CSS3DObject( mainDiv );
+		cssObjMain.position.x = boxMesh.position.x;
+		cssObjMain.position.y = boxMesh.position.y;
+		cssObjMain.position.z = boxGeometry.parameters.depth/2;
+		//cssObject.rotation.y = boxMesh.rotation.y;
+		//cssScene.add(cssObject);
+
+		cssObjRight = new THREE.CSS3DObject( rightDiv );
+		cssObjRight.position.x = boxGeometry.parameters.width/2;
+		cssObjRight.position.y = boxMesh.position.y;
+		cssObjRight.position.z = 0;
+		cssObjRight.rotation.y = Math.PI / 2;
+		//cssScene.add(cssObject2);
+
+		cssObjBack = new THREE.CSS3DObject( backDiv );
+		cssObjBack.position.x = boxMesh.position.x;
+		cssObjBack.position.y = boxMesh.position.y;
+		cssObjBack.position.z = -boxGeometry.parameters.depth/2;
+		cssObjBack.rotation.y = ( -180/180*Math.PI );
+
+		cssObjleft = new THREE.CSS3DObject( leftDiv );
+		cssObjleft.position.x = -boxGeometry.parameters.width/2;
+		cssObjleft.position.y = boxMesh.position.y;
+		cssObjleft.position.z = 0;
+		cssObjleft.rotation.y = - Math.PI / 2;
+
+		boxMesh.add(cssObjMain);
+		boxMesh.add(cssObjRight);
+		boxMesh.add(cssObjBack);
+		boxMesh.add(cssObjleft);
+		cssScene.add(boxMesh);
+
+
+		renderer = new THREE.WebGLRenderer();
+		renderer.setClearColor( 0xBFD1E5 );
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		container.appendChild( renderer.domElement );
+
+		cssRenderer = new THREE.CSS3DRenderer();
+		cssRenderer.setSize( window.innerWidth, window.innerHeight );
+		cssRenderer.domElement.style.position = 'absolute';
+		cssRenderer.domElement.style.top = 0;
+		container.appendChild( cssRenderer.domElement );
+
+		window.addEventListener( 'resize', onWindowResize, false );
+		// controls = new THREE.OrbitControls( camera, renderer.domElement );
+		// controls2 = new THREE.OrbitControls( camera, cssRenderer.domElement );
+		// controls.target.set( 0, 1, 0 );
+		// controls2.target.set( 0, 1, 0 );
+	};
+
+
+	function onWindowResize(event) {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+	function animate() {
+		requestAnimationFrame( animate );
+		render();
+	}
+
+	function render() {
+		camera.lookAt( scene.position );
+		//boxMesh.rotation.y = directionY/10;
+		boxMesh.rotation.y = directionY/10;
+		//planeMesh.rotation.z = directionZ;
+		// controls.update();
+		// controls2.update();
+		renderer.render( scene, camera );
+		cssRenderer.render(cssScene, camera);
+	}
+
+	init();
+	//console.log(Point3D (400, 200, window.innerWidth, window.innerHeight, camera.modelViewMatrix, camera.projectionMatrix));
+	animate();
+
+	$('#idform').submit(function(e) {
+		e.preventDefault();
+		console.log('I am submitted!');
+
+	    $.ajax({
+			url: '/search',
+			type:'POST',
+			data: {
+			search: $('#searchResult').val(),
+			},
+			//server sends back this if it succeeds
+			success: function(data) {
+				words = data + "";
+				for (var i = 0; i < data.length; i++ ) {
+					if (data[i] == data[i+1]) {
+						data.splice(i,1);
+					}
+				}
+				//console.log(data);
+				//$('.three-div').html('');
+				var pic1 = document.createElement('img');
+				var pic2 = document.createElement('img');
+				var pic3 = document.createElement('img');
+				pic1.src = data[0];
+				pic1.style.position = 'absolute';
+				pic1.style.top = 0;
+				pic1.style.left = 0;
+				pic1.style.width = '100%';
+				pic1.style.height = '100%';
+
+				pic2.src = data[1];
+				pic2.style.position = 'absolute';
+				pic2.style.top = 0;
+				pic2.style.left = 0;
+				pic2.style.width = '100%';
+				pic2.style.height = '100%';
+
+				pic3.src = data[2];
+				pic3.style.position = 'absolute';
+				pic3.style.top = 0;
+				pic3.style.left = 0;
+				pic3.style.width = '100%';
+				pic3.style.height = '100%';
+
+				// //console.log(pic);
+
+				$('.right').append(pic1);
+				$('.back').append(pic2);
+				$('.left').append(pic3);
+
+			},
+			error: function (err) {
+				console.log('did not work');
+			}               
+		});  
+	});
+
+	function loop() {
+		//console.log(stuff);
+		//$('#myCanvas').css('transform',"rotateY(" + directionY + "deg)");
+		//$('#myCanvas').css('transform',"rotateX(" + Math.abs(directionX) + "deg)");
+		$('#myCanvas').css('transform',"rotateZ(" + -directionZ + "deg)");
+		//document.getElementById("myDIV").style.transform = "rotate(7deg)";
+	    //console.log("rotateY(" + directionY + "deg)");
+	    // x += 10; 
+		//console.log(x);
+	    requestAnimationFrame(loop);
+	}
+
+	//loop();
+      
+    </script>
+  </body>
+</html>
